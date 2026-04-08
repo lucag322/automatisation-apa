@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Shield, ShieldCheck, UserPlus, Trash2, Loader2, Clock, CheckCircle2 } from 'lucide-react';
+import { Shield, ShieldCheck, UserPlus, Trash2, Loader2, Clock, CheckCircle2, Copy, Link } from 'lucide-react';
 
 interface UserItem {
   id: string;
@@ -25,6 +25,8 @@ export function UsersPage() {
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [lastInviteLink, setLastInviteLink] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ['users'],
@@ -34,13 +36,22 @@ export function UsersPage() {
   const createMutation = useMutation({
     mutationFn: (body: { email: string; name?: string }) =>
       api.post<{ user: UserItem; emailSent: boolean; inviteLink: string }>('/auth/register', body),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       setEmail('');
       setName('');
       setShowForm(false);
+      setLastInviteLink(data.inviteLink);
+      setLinkCopied(false);
     },
   });
+
+  function copyInviteLink() {
+    if (!lastInviteLink) return;
+    navigator.clipboard.writeText(lastInviteLink);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  }
 
   const roleMutation = useMutation({
     mutationFn: ({ id, role }: { id: string; role: 'admin' | 'editor' }) =>
@@ -77,6 +88,42 @@ export function UsersPage() {
           Nouvel utilisateur
         </Button>
       </div>
+
+      {lastInviteLink && (
+        <Card className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950">
+          <CardContent className="py-4">
+            <div className="flex items-start gap-3">
+              <Link className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                  Lien d'invitation
+                </p>
+                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                  Partagez ce lien avec l'utilisateur pour qu'il définisse son mot de passe.
+                  Valide 48h.
+                </p>
+                <div className="mt-2 flex items-center gap-2">
+                  <code className="text-xs bg-white dark:bg-blue-900 rounded px-2 py-1 truncate block flex-1 border">
+                    {lastInviteLink}
+                  </code>
+                  <Button size="sm" variant="outline" className="shrink-0 gap-1" onClick={copyInviteLink}>
+                    <Copy className="h-3.5 w-3.5" />
+                    {linkCopied ? 'Copié !' : 'Copier'}
+                  </Button>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="shrink-0 text-blue-600"
+                onClick={() => setLastInviteLink(null)}
+              >
+                ✕
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {showForm && (
         <Card>

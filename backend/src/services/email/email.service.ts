@@ -24,7 +24,7 @@ export async function sendInviteEmail(
   }
 
   const { error } = await resend.emails.send({
-    from: 'Système Éditorial <onboarding@resend.dev>',
+    from: 'Système Éditorial <noreply@dpwluca.fr>',
     to,
     subject: 'Invitation - Système Éditorial',
     html: `
