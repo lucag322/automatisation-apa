@@ -253,7 +253,7 @@ export function CalendarPage() {
 
               return (
                 <Card
-                  key={key}
+                  key={event.name + event.fullDate}
                   className={`transition-all ${past ? 'opacity-50' : ''} ${today ? 'ring-2 ring-primary' : ''} ${eventGenerated ? 'bg-green-50/50' : ''}`}
                 >
                   <CardContent className="flex items-start justify-between gap-4 py-4">
