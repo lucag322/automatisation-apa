@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
-import { loginSchema } from './auth.schema';
-import { authenticateUser, getUserById } from './auth.service';
+import { loginSchema, registerSchema } from './auth.schema';
+import { authenticateUser, getUserById, createUser } from './auth.service';
+import { ForbiddenError } from '../../lib/errors';
 
 export async function authRoutes(app: FastifyInstance) {
   app.post('/api/auth/login', async (request, reply) => {
@@ -27,6 +28,18 @@ export async function authRoutes(app: FastifyInstance) {
   }, async (request) => {
     const payload = request.user as { id: string };
     const user = await getUserById(payload.id);
+    return { user };
+  });
+
+  app.post('/api/auth/register', {
+    onRequest: [app.authenticate],
+  }, async (request) => {
+    const caller = request.user as { role: string };
+    if (caller.role !== 'admin') {
+      throw new ForbiddenError('Only admins can create users');
+    }
+    const body = registerSchema.parse(request.body);
+    const user = await createUser(body);
     return { user };
   });
 }
