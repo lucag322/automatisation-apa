@@ -90,10 +90,28 @@ app.register(contextRoutes);
 
 app.get('/api/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
 
+async function seedAdmin() {
+  const email = env.ADMIN_EMAIL;
+  const password = env.ADMIN_PASSWORD;
+  if (!email || !password) return;
+
+  const { default: bcrypt } = await import('bcryptjs');
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) return;
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  await prisma.user.create({
+    data: { email, passwordHash, name: 'Admin', role: 'admin' },
+  });
+  app.log.info(`Admin user created: ${email}`);
+}
+
 async function start() {
   try {
     await prisma.$connect();
     app.log.info('Database connected');
+
+    await seedAdmin();
 
     await app.listen({ port: env.PORT, host: '0.0.0.0' });
     app.log.info(`Server running on port ${env.PORT}`);
