@@ -1,0 +1,180 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  editor
+}
+
+enum ContentStatus {
+  draft
+  to_review
+  approved
+  rejected
+  published
+}
+
+enum SourceType {
+  article
+  report
+  study
+  law
+  event
+  announcement
+  campaign
+  press_release
+  official_document
+  other
+}
+
+enum PostType {
+  informational
+  awareness
+  opinion
+  testimonial
+  event_promotion
+  recap
+  call_to_action
+  educational
+}
+
+enum Theme {
+  sport
+  adapted_sport
+  disability
+  maison_sport_sante
+  public_health
+  inclusion
+  awareness_campaign
+  law_and_policy
+  official_report
+  public_interest_event
+}
+
+enum WorkflowStatus {
+  pending
+  running
+  success
+  failed
+  cancelled
+}
+
+enum ReviewAction {
+  approve
+  reject
+  request_changes
+  move_to_review
+  regenerate
+  publish
+}
+
+model User {
+  id           String           @id @default(cuid())
+  email        String           @unique
+  passwordHash String
+  name         String?
+  role         Role             @default(editor)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  versions     ContentVersion[]
+  reviewLogs   ReviewLog[]
+}
+
+model Source {
+  id               String        @id @default(cuid())
+  url              String
+  title            String
+  rawContent       String
+  summary          String?
+  sourceType       SourceType    @default(other)
+  publishedAt      DateTime?
+  reliabilityScore Float?
+  contentHash      String        @unique
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  contentItems     ContentItem[]
+}
+
+model ContentItem {
+  id                String           @id @default(cuid())
+  sourceId          String?
+  source            Source?          @relation(fields: [sourceId], references: [id])
+  title             String
+  hook              String?
+  body              String
+  hashtags          String[]
+  cta               String?
+  postType          PostType         @default(informational)
+  theme             Theme            @default(public_health)
+  persona           String?
+  status            ContentStatus    @default(draft)
+  priorityScore     Float            @default(0)
+  aiConfidence      Float?
+  targetPublishDate DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  versions          ContentVersion[]
+  reviewLogs        ReviewLog[]
+}
+
+model ContentVersion {
+  id            String      @id @default(cuid())
+  contentItemId String
+  contentItem   ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  title         String
+  hook          String?
+  body          String
+  hashtags      String[]
+  cta           String?
+  versionNumber Int
+  createdAt     DateTime    @default(now())
+  createdByUserId String?
+  createdBy     User?       @relation(fields: [createdByUserId], references: [id])
+
+  @@index([contentItemId])
+}
+
+model ReviewLog {
+  id            String       @id @default(cuid())
+  contentItemId String
+  contentItem   ContentItem  @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  userId        String?
+  user          User?        @relation(fields: [userId], references: [id])
+  action        ReviewAction
+  comment       String?
+  createdAt     DateTime     @default(now())
+
+  @@index([contentItemId])
+}
+
+model EditorialContext {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WorkflowRun {
+  id              String         @id @default(cuid())
+  workflowName    String
+  triggerType     String
+  status          WorkflowStatus @default(pending)
+  payload         Json?
+  responseSummary String?
+  errorMessage    String?
+  startedAt       DateTime       @default(now())
+  finishedAt      DateTime?
+  createdAt       DateTime       @default(now())
+
+  @@index([workflowName])
+  @@index([status])
+}
