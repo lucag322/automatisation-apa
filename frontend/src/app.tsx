@@ -11,6 +11,7 @@ import { ResearchPage } from '@/pages/research';
 import { CalendarPage } from '@/pages/calendar';
 import { GeneratePage } from '@/pages/generate';
 import { ContextPage } from '@/pages/context';
+import { UsersPage } from '@/pages/users';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -48,6 +49,7 @@ export function App() {
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="generate" element={<GeneratePage />} />
         <Route path="context" element={<ContextPage />} />
+        <Route path="users" element={<UsersPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

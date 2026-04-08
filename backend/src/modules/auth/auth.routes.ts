@@ -1,7 +1,14 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { loginSchema, registerSchema } from './auth.schema';
-import { authenticateUser, getUserById, createUser } from './auth.service';
+import { authenticateUser, getUserById, createUser, listUsers, updateUserRole, deleteUser } from './auth.service';
 import { ForbiddenError } from '../../lib/errors';
+
+function requireAdmin(caller: { role: string }) {
+  if (caller.role !== 'admin') {
+    throw new ForbiddenError('Only admins can perform this action');
+  }
+}
 
 export async function authRoutes(app: FastifyInstance) {
   app.post('/api/auth/login', async (request, reply) => {
@@ -31,15 +38,42 @@ export async function authRoutes(app: FastifyInstance) {
     return { user };
   });
 
+  app.get('/api/auth/users', {
+    onRequest: [app.authenticate],
+  }, async (request) => {
+    const caller = request.user as { role: string };
+    requireAdmin(caller);
+    const users = await listUsers();
+    return { users };
+  });
+
   app.post('/api/auth/register', {
     onRequest: [app.authenticate],
   }, async (request) => {
     const caller = request.user as { role: string };
-    if (caller.role !== 'admin') {
-      throw new ForbiddenError('Only admins can create users');
-    }
+    requireAdmin(caller);
     const body = registerSchema.parse(request.body);
     const user = await createUser(body);
     return { user };
+  });
+
+  app.patch('/api/auth/users/:id/role', {
+    onRequest: [app.authenticate],
+  }, async (request) => {
+    const caller = request.user as { role: string };
+    requireAdmin(caller);
+    const { id } = request.params as { id: string };
+    const { role } = z.object({ role: z.enum(['admin', 'editor']) }).parse(request.body);
+    const user = await updateUserRole(id, role);
+    return { user };
+  });
+
+  app.delete('/api/auth/users/:id', {
+    onRequest: [app.authenticate],
+  }, async (request) => {
+    const caller = request.user as { role: string };
+    requireAdmin(caller);
+    const { id } = request.params as { id: string };
+    return deleteUser(id);
   });
 }

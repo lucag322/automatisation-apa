@@ -7,6 +7,7 @@ import {
   CalendarDays,
   Wand2,
   BookOpen,
+  Users,
   LogOut,
   Menu,
   X,
@@ -25,7 +26,8 @@ const navItems = [
   { to: '/calendar', label: 'Calendrier', icon: CalendarDays },
   { to: '/context', label: 'Contexte', icon: BookOpen },
   { to: '/sources', label: 'Sources', icon: Database },
-];
+  { to: '/users', label: 'Utilisateurs', icon: Users, adminOnly: true },
+] as const;
 
 export function Layout() {
   const { user, logout } = useAuth();
@@ -54,6 +56,7 @@ export function Layout() {
         <Separator />
         <nav className="flex-1 space-y-1 p-4">
           {navItems.map((item) => {
+            if ('adminOnly' in item && item.adminOnly && user?.role !== 'admin') return null;
             const active = location.pathname.startsWith(item.to);
             return (
               <Link
