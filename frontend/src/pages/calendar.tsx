@@ -18,6 +18,7 @@ interface CalendarEvent {
   fullDate: string;
   description: string;
   themes: string[];
+  generated?: boolean;
 }
 
 interface CalendarResponse {
@@ -91,7 +92,7 @@ export function CalendarPage() {
   const [discoveredEvents, setDiscoveredEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [discovering, setDiscovering] = useState(false);
-  const [generatedEvents, setGeneratedEvents] = useState<Set<string>>(new Set());
+  const [localGenerated, setLocalGenerated] = useState<Set<string>>(new Set());
 
   async function fetchEvents(discover = false) {
     if (!startDate || !endDate) return;
@@ -117,6 +118,10 @@ export function CalendarPage() {
     }
   }
 
+  function isGenerated(event: CalendarEvent): boolean {
+    return event.generated === true || localGenerated.has(event.name + event.fullDate);
+  }
+
   const generateMutation = useMutation({
     mutationFn: (event: CalendarEvent) =>
       api.post('/calendar/generate', event),
@@ -128,7 +133,7 @@ export function CalendarPage() {
         queryClient.invalidateQueries({ queryKey: ['contents'] });
         queryClient.invalidateQueries({ queryKey: ['sources'] });
       }
-      setGeneratedEvents((prev) => new Set([...prev, event.name + event.fullDate]));
+      setLocalGenerated((prev) => new Set([...prev, event.name + event.fullDate]));
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -137,11 +142,10 @@ export function CalendarPage() {
     mutationFn: async (eventList: CalendarEvent[]) => {
       const results = [];
       for (const event of eventList) {
-        const key = event.name + event.fullDate;
-        if (generatedEvents.has(key)) continue;
+        if (isGenerated(event)) continue;
         const result = await api.post('/calendar/generate', event);
         results.push({ event, result });
-        setGeneratedEvents((prev) => new Set([...prev, key]));
+        setLocalGenerated((prev) => new Set([...prev, event.name + event.fullDate]));
       }
       return results;
     },
@@ -159,9 +163,7 @@ export function CalendarPage() {
 
   const allEvents = [...(events || []), ...discoveredEvents];
   const futureEvents = allEvents.filter((e) => !isEventPast(e.fullDate) || isEventToday(e.fullDate));
-  const ungeneratedEvents = futureEvents.filter(
-    (e) => !generatedEvents.has(e.name + e.fullDate),
-  );
+  const ungeneratedEvents = futureEvents.filter((e) => !isGenerated(e));
 
   return (
     <div className="space-y-6 p-6">
@@ -244,8 +246,7 @@ export function CalendarPage() {
 
           <div className="space-y-3">
             {allEvents.map((event) => {
-              const key = event.name + event.fullDate;
-              const isGenerated = generatedEvents.has(key);
+              const eventGenerated = isGenerated(event);
               const past = isEventPast(event.fullDate) && !isEventToday(event.fullDate);
               const today = isEventToday(event.fullDate);
               const isDiscovered = discoveredEvents.includes(event);
@@ -253,7 +254,7 @@ export function CalendarPage() {
               return (
                 <Card
                   key={key}
-                  className={`transition-all ${past ? 'opacity-50' : ''} ${today ? 'ring-2 ring-primary' : ''} ${isGenerated ? 'bg-green-50/50' : ''}`}
+                  className={`transition-all ${past ? 'opacity-50' : ''} ${today ? 'ring-2 ring-primary' : ''} ${eventGenerated ? 'bg-green-50/50' : ''}`}
                 >
                   <CardContent className="flex items-start justify-between gap-4 py-4">
                     <div className="min-w-0 flex-1 space-y-2">
@@ -288,7 +289,7 @@ export function CalendarPage() {
                       </div>
                     </div>
                     <div className="shrink-0">
-                      {isGenerated ? (
+                      {eventGenerated ? (
                         <div className="flex items-center gap-1 text-sm text-green-600 font-medium">
                           <CheckCircle2 className="h-4 w-4" />
                           Généré
