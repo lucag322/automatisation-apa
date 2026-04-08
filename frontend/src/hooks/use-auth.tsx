@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { api } from '@/lib/api';
+import { api, setToken } from '@/lib/api';
 import type { User } from '@/types';
 
 interface AuthContextType {
@@ -18,17 +18,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     api.get<{ user: User }>('/auth/me')
       .then((data) => setUser(data.user))
-      .catch(() => setUser(null))
+      .catch(() => {
+        setToken(null);
+        setUser(null);
+      })
       .finally(() => setLoading(false));
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     const data = await api.post<{ user: User; token: string }>('/auth/login', { email, password });
+    setToken(data.token);
     setUser(data.user);
   }, []);
 
   const logout = useCallback(async () => {
-    await api.post('/auth/logout');
+    setToken(null);
     setUser(null);
     window.location.href = '/login';
   }, []);

@@ -1,14 +1,29 @@
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : '/api';
+
+function getToken(): string | null {
+  return localStorage.getItem('auth_token');
+}
+
+export function setToken(token: string | null) {
+  if (token) {
+    localStorage.setItem('auth_token', token);
+  } else {
+    localStorage.removeItem('auth_token');
+  }
+}
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const hasBody = options?.method && options.method !== 'GET';
+  const token = getToken();
   const headers: Record<string, string> = {
     ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options?.headers as Record<string, string>,
   };
 
   const res = await fetch(`${API_BASE}${path}`, {
-    credentials: 'include',
     headers,
     ...options,
     ...(hasBody && !options?.body ? { body: '{}' } : {}),

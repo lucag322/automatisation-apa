@@ -36,10 +36,6 @@ app.register(cookie);
 
 app.register(jwt, {
   secret: env.JWT_SECRET,
-  cookie: {
-    cookieName: 'token',
-    signed: false,
-  },
 });
 
 declare module 'fastify' {
@@ -53,7 +49,13 @@ app.decorate('authenticate', async function (
   reply: import('fastify').FastifyReply,
 ) {
   try {
-    await request.jwtVerify();
+    const authHeader = request.headers.authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.slice(7);
+      request.user = app.jwt.verify(token);
+    } else {
+      await request.jwtVerify();
+    }
   } catch {
     reply.code(401).send({ error: 'Unauthorized' });
   }
