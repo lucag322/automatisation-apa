@@ -31,7 +31,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
   if (res.status === 401) {
     const currentPath = window.location.pathname;
-    if (currentPath !== '/login') {
+    const publicPaths = ['/login', '/set-password'];
+    if (!publicPaths.some((p) => currentPath.startsWith(p))) {
       window.location.href = '/login';
     }
     throw new Error('Unauthorized');
