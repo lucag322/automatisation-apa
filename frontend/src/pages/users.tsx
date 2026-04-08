@@ -7,13 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Shield, ShieldCheck, UserPlus, Trash2, Loader2 } from 'lucide-react';
+import { Shield, ShieldCheck, UserPlus, Trash2, Loader2, Clock, CheckCircle2 } from 'lucide-react';
 
 interface UserItem {
   id: string;
   email: string;
   name: string | null;
   role: 'admin' | 'editor';
+  isActive: boolean;
   isSuperAdmin: boolean;
   createdAt: string;
 }
@@ -23,7 +24,6 @@ export function UsersPage() {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [name, setName] = useState('');
 
   const { data, isLoading } = useQuery({
@@ -32,12 +32,11 @@ export function UsersPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (body: { email: string; password: string; name?: string }) =>
-      api.post('/auth/register', body),
+    mutationFn: (body: { email: string; name?: string }) =>
+      api.post<{ user: UserItem; emailSent: boolean; inviteLink: string }>('/auth/register', body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       setEmail('');
-      setPassword('');
       setName('');
       setShowForm(false);
     },
@@ -86,10 +85,10 @@ export function UsersPage() {
           </CardHeader>
           <CardContent>
             <form
-              className="grid gap-4 sm:grid-cols-3"
+              className="grid gap-4 sm:grid-cols-2"
               onSubmit={(e) => {
                 e.preventDefault();
-                createMutation.mutate({ email, password, name: name || undefined });
+                createMutation.mutate({ email, name: name || undefined });
               }}
             >
               <div className="space-y-2">
@@ -103,17 +102,6 @@ export function UsersPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Mot de passe</Label>
-                <Input
-                  type="password"
-                  placeholder="Min. 6 caractères"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                />
-              </div>
-              <div className="space-y-2">
                 <Label>Nom (optionnel)</Label>
                 <Input
                   placeholder="Prénom Nom"
@@ -121,17 +109,17 @@ export function UsersPage() {
                   onChange={(e) => setName(e.target.value)}
                 />
               </div>
-              <div className="sm:col-span-3 flex gap-2">
+              <div className="sm:col-span-2 flex gap-2">
                 <Button type="submit" disabled={createMutation.isPending}>
                   {createMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                  Créer
+                  Inviter
                 </Button>
                 <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>
                   Annuler
                 </Button>
               </div>
               {createMutation.isError && (
-                <p className="sm:col-span-3 text-sm text-destructive">
+                <p className="sm:col-span-2 text-sm text-destructive">
                   {(createMutation.error as Error).message}
                 </p>
               )}
@@ -172,6 +160,15 @@ export function UsersPage() {
                       )}
                       {u.role === 'editor' && (
                         <Badge variant="outline" className="text-xs">Éditeur</Badge>
+                      )}
+                      {!u.isSuperAdmin && !u.isActive && (
+                        <Badge variant="outline" className="text-xs text-amber-600 border-amber-300 gap-1">
+                          <Clock className="h-3 w-3" />
+                          Invitation envoyée
+                        </Badge>
+                      )}
+                      {!u.isSuperAdmin && u.isActive && (
+                        <span className="text-green-500"><CheckCircle2 className="h-3.5 w-3.5" /></span>
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground">{u.email}</p>

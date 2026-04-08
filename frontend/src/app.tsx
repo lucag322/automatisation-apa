@@ -12,6 +12,7 @@ import { CalendarPage } from '@/pages/calendar';
 import { GeneratePage } from '@/pages/generate';
 import { ContextPage } from '@/pages/context';
 import { UsersPage } from '@/pages/users';
+import { SetPasswordPage } from '@/pages/set-password';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -32,6 +33,7 @@ export function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/set-password" element={<SetPasswordPage />} />
       <Route
         path="/"
         element={

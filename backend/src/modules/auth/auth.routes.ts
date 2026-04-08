@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { loginSchema, registerSchema } from './auth.schema';
-import { authenticateUser, getUserById, createUser, listUsers, updateUserRole, deleteUser } from './auth.service';
+import { loginSchema, registerSchema, setPasswordSchema } from './auth.schema';
+import { authenticateUser, getUserById, createUser, listUsers, updateUserRole, deleteUser, setPasswordWithToken } from './auth.service';
 import { ForbiddenError } from '../../lib/errors';
 
 function requireAdmin(caller: { role: string }) {
@@ -75,5 +75,11 @@ export async function authRoutes(app: FastifyInstance) {
     requireAdmin(caller);
     const { id } = request.params as { id: string };
     return deleteUser(id);
+  });
+
+  app.post('/api/auth/set-password', async (request) => {
+    const { token, password } = setPasswordSchema.parse(request.body);
+    const result = await setPasswordWithToken(token, password);
+    return { ok: true, ...result };
   });
 }

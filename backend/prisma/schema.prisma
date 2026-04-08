@@ -75,15 +75,18 @@ enum ReviewAction {
 }
 
 model User {
-  id           String           @id @default(cuid())
-  email        String           @unique
-  passwordHash String
-  name         String?
-  role         Role             @default(editor)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  versions     ContentVersion[]
-  reviewLogs   ReviewLog[]
+  id              String           @id @default(cuid())
+  email           String           @unique
+  passwordHash    String
+  name            String?
+  role            Role             @default(editor)
+  isActive        Boolean          @default(true)
+  inviteToken     String?          @unique
+  inviteExpiresAt DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  versions        ContentVersion[]
+  reviewLogs      ReviewLog[]
 }
 
 model Source {

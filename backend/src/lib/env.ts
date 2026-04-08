@@ -9,6 +9,8 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string(),
   ADMIN_EMAIL: z.string().email().optional(),
   ADMIN_PASSWORD: z.string().min(6).optional(),
+  RESEND_API_KEY: z.string().optional(),
+  FRONTEND_URL: z.string().default('http://localhost:5173'),
 });
 
 export type Env = z.infer<typeof envSchema>;
